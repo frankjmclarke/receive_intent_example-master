@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 import 'package:receive_sharing_intent/receive_sharing_intent.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -37,7 +38,7 @@ class _MyHomePageState extends State<MyHomePage> {
   StreamSubscription? _dataStreamSubscription;
   var loadingPercentage = 0;
   late final WebViewController controller;
-  String _sharedText = "";
+  String _sharedText = 'https://flutter.dev';
 
   List<SharedMediaFile>? _sharedFiles;
 
@@ -61,12 +62,9 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: WebViewWidget(
                   controller: controller,
                 ),
-
               ),
-
             ),
-
-      const Text(
+            const Text(
               "Shared Text is :",
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
@@ -83,7 +81,6 @@ class _MyHomePageState extends State<MyHomePage> {
             if (_sharedFiles != null)
               Text(_sharedFiles!.map((f) => f.path).join(",") ?? "",
                   style: const TextStyle(fontSize: 20)),
-      
           ],
         ),
       ),
@@ -94,6 +91,7 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
     controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(
         onPageStarted: (url) {
           setState(() {
@@ -112,23 +110,31 @@ class _MyHomePageState extends State<MyHomePage> {
         },
       ))
       ..loadRequest(
-        Uri.parse('https://flutter.dev'),
+        //Uri.parse('https://flutter.dev'),
+        Uri.parse(_sharedText),
       );
 
     //Receive text data when app is running
     _dataStreamSubscription =
-        ReceiveSharingIntent.getTextStream().listen((String text) {
-      setState(() {
+        ReceiveSharingIntent.getTextStream().listen((String text)  async {
+      setState(()  {
         _sharedText = text;
+
+
       });
+      await controller.loadRequest(Uri.parse(text));
+       //controller.loadRequest(Uri.parse('https://youtube.com'));
     });
 
     //Receive text data when app is closed
-    ReceiveSharingIntent.getInitialText().then((String? text) {
+    ReceiveSharingIntent.getInitialText().then((String? text) async {
       if (text != null) {
         setState(() {
           _sharedText = text;
         });
+
+        controller.loadRequest(Uri.parse(_sharedText));
+        controller.reload();
       }
     });
 
